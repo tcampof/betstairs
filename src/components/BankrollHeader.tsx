@@ -15,7 +15,6 @@ interface BankrollHeaderProps {
   hucha?: number;
   reserva?: number;
   onReiniciar?: () => void;
-  /** Ingresar / retirar capital. */
   gestionCapital?: {
     fase: FaseArbol;
     onIngresar: (monto: number) => void;
@@ -24,8 +23,29 @@ interface BankrollHeaderProps {
   };
 }
 
+function FilaStat({
+  label,
+  value,
+  tone = "text-slate-200",
+}: {
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate text-[10px] font-medium uppercase tracking-wider text-slate-500">
+        {label}
+      </p>
+      <p className={`truncate text-sm font-medium tabular-nums leading-tight ${tone}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 /**
- * Cabecera con el balance global y una barra de progreso hacia la meta mensual.
+ * Cabecera con el balance global y progreso hacia la meta mensual.
  */
 export function BankrollHeader({
   bankroll,
@@ -46,156 +66,139 @@ export function BankrollHeader({
     [bankroll.balanceActual, ramas],
   );
 
+  const metricas = useMemo(() => {
+    const items: { label: string; value: string; tone: string }[] = [];
+
+    if (apuestas.cantidad > 0) {
+      items.push(
+        {
+          label: "En juego",
+          value: formatearEuros(apuestas.enJuego),
+          tone: "text-amber-200/90",
+        },
+        {
+          label: "Si pierdes",
+          value: formatearEuros(apuestas.saldoTrasPerderActivas),
+          tone: "text-slate-300",
+        },
+        {
+          label: "Esperado",
+          value: `+${formatearEuros(apuestas.gananciaEsperada)}`,
+          tone: "text-emerald-300/90",
+        },
+      );
+    }
+
+    items.push(
+      { label: "Hucha", value: formatearEuros(hucha), tone: "text-sky-200/80" },
+      {
+        label: "Ganancias",
+        value: `${enPositivo ? "+" : ""}${formatearEuros(bankroll.gananciasAcumuladas)}`,
+        tone: enPositivo ? "text-emerald-300/90" : "text-rose-300/90",
+      },
+    );
+
+    if (reserva > 0) {
+      items.push({
+        label: "Sin asignar",
+        value: formatearEuros(reserva),
+        tone: "text-violet-200/80",
+      });
+    }
+
+    return items;
+  }, [apuestas, hucha, reserva, enPositivo, bankroll.gananciasAcumuladas]);
+
   return (
     <>
-      <header className="glass-card p-4 sm:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-widest text-slate-400">
-              Árbol de Escaleras
-            </p>
-            <div className="mt-0.5 flex flex-wrap items-baseline gap-x-2 gap-y-0">
-              {gestionCapital ? (
-                <button
-                  type="button"
-                  onClick={() => setModalRetiro(true)}
-                  disabled={gestionCapital.desgloseRetiro.saldoRetirable <= 0}
-                  title="Retirar del saldo"
-                  className="group flex items-baseline gap-x-2 rounded-md border border-transparent px-1 -mx-1 transition hover:border-emerald-400/25 hover:bg-emerald-400/[0.04] disabled:opacity-50 disabled:hover:border-transparent disabled:hover:bg-transparent"
-                >
-                  <h1 className="text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl group-hover:text-emerald-50">
-                    {formatearEuros(bankroll.balanceActual)}
-                  </h1>
-                  <span
-                    aria-hidden
-                    className="text-sm text-emerald-400/60 group-hover:text-emerald-300"
-                  >
-                    ↓
-                  </span>
-                </button>
-              ) : (
-                <h1 className="text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl">
-                  {formatearEuros(bankroll.balanceActual)}
-                </h1>
-              )}
-              <span className="text-xs font-medium text-slate-500">
-                {apuestas.cantidad > 0 ? "disponible" : "total"}
-              </span>
-            </div>
+      <header className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-slate-900/50 px-4 py-4 backdrop-blur-sm sm:px-5 sm:py-5">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-6 -top-10 h-32 w-32 rounded-full bg-emerald-500/[0.07] blur-3xl"
+        />
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/[0.06] pt-2 text-[11px] text-slate-500 sm:text-xs">
-              {apuestas.cantidad > 0 ? (
-                <>
-                  <span>
-                    En juego{" "}
-                    <span className="font-medium text-amber-300/85">
-                      {formatearEuros(apuestas.enJuego)}
-                    </span>
-                    <span className="text-slate-600">
-                      {" "}
-                      · {apuestas.cantidad}{" "}
-                      {apuestas.cantidad === 1 ? "apuesta" : "apuestas"}
-                    </span>
-                  </span>
-                  <span className="hidden text-slate-600 sm:inline" aria-hidden>
-                    |
-                  </span>
-                  <span>
-                    Tras perder{" "}
-                    <span className="font-medium text-slate-400">
-                      {formatearEuros(apuestas.saldoTrasPerderActivas)}
-                    </span>
-                  </span>
-                  <span className="hidden text-slate-600 sm:inline" aria-hidden>
-                    |
-                  </span>
-                  <span>
-                    Ganancia esp.{" "}
-                    <span className="font-medium text-emerald-400/90">
-                      +{formatearEuros(apuestas.gananciaEsperada)}
-                    </span>
-                  </span>
-                </>
-              ) : (
-                <span className="text-slate-600">Sin apuestas activas</span>
-              )}
-            </div>
+        {/* Saldo */}
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-500">
+              {apuestas.cantidad > 0 ? "Disponible" : "Saldo"}
+            </p>
+            {gestionCapital ? (
+              <button
+                type="button"
+                onClick={() => setModalRetiro(true)}
+                disabled={gestionCapital.desgloseRetiro.saldoRetirable <= 0}
+                title="Retirar capital"
+                className="group mt-1 block max-w-full text-left disabled:opacity-40"
+              >
+                <span className="block truncate bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-3xl font-semibold tracking-tight text-transparent tabular-nums transition group-hover:from-emerald-100 group-hover:to-emerald-300 sm:text-4xl">
+                  {formatearEuros(bankroll.balanceActual)}
+                </span>
+              </button>
+            ) : (
+              <p className="mt-1 truncate text-3xl font-semibold tracking-tight text-slate-50 tabular-nums sm:text-4xl">
+                {formatearEuros(bankroll.balanceActual)}
+              </p>
+            )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <div className="flex shrink-0 items-center gap-1.5">
             {gestionCapital ? (
               <button
                 type="button"
                 onClick={() => setModalIngresar(true)}
-                title="Ingresar dinero"
-                className="group flex items-center gap-1 rounded-md border border-violet-400/20 bg-violet-400/5 px-2.5 py-1.5 text-sm font-semibold text-violet-200 transition hover:border-violet-400/40 hover:bg-violet-400/10"
+                title="Ingresar capital"
+                aria-label="Ingresar capital"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-lg font-light text-slate-300 transition hover:bg-emerald-500/15 hover:text-emerald-200"
               >
-                Ingresar
-                <span aria-hidden className="text-violet-400 group-hover:text-violet-300">
-                  +
-                </span>
+                +
               </button>
             ) : null}
-
-            {reserva > 0 ? (
-              <div className="text-right">
-                <p className="text-xs text-slate-500">Sin asignar</p>
-                <p className="font-semibold text-violet-300/90">
-                  {formatearEuros(reserva)}
-                </p>
-              </div>
-            ) : null}
-
-            <div>
-              <p className="text-xs text-slate-500">Hucha</p>
-              <p className="font-semibold text-sky-300">
-                {formatearEuros(hucha)}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-xs text-slate-500">Ganancias</p>
-              <p
-                className={`font-semibold ${
-                  enPositivo ? "text-emerald-400" : "text-rose-400"
-                }`}
-              >
-                {enPositivo ? "+" : ""}
-                {formatearEuros(bankroll.gananciasAcumuladas)}
-              </p>
-            </div>
-
             {onReiniciar ? (
               <button
                 type="button"
                 onClick={onReiniciar}
-                className="btn-glass btn-glass-ghost px-2.5 py-1.5 text-xs hover:border-rose-400/40 hover:text-rose-200"
+                title="Reiniciar mes"
+                aria-label="Reiniciar"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.04] text-sm text-slate-500 transition hover:bg-white/[0.08] hover:text-slate-300"
               >
-                Reiniciar
+                ↺
               </button>
             ) : null}
           </div>
         </div>
 
-        <div className="mt-3">
-          <div className="mb-1.5 flex items-center justify-between text-xs sm:text-sm">
-            <span className="text-slate-400">
-              Meta ·{" "}
-              <span className="font-medium text-slate-200">
-                {formatearEuros(bankroll.metaMensual)}
+        {/* Métricas en una sola rejilla */}
+        <div
+          className={`relative mt-3 grid gap-x-3 gap-y-2.5 sm:gap-x-4 ${
+            metricas.length <= 2 ? "grid-cols-2" : "grid-cols-3"
+          }`}
+        >
+          {metricas.map((m) => (
+            <FilaStat key={m.label} label={m.label} value={m.value} tone={m.tone} />
+          ))}
+        </div>
+
+        {/* Meta */}
+        <div className="relative mt-3 border-t border-white/[0.05] pt-2.5">
+          <div className="mb-1.5 flex items-baseline justify-between gap-2 text-xs">
+            <span className="text-slate-500">Meta mensual</span>
+            <span className="tabular-nums text-slate-400">
+              <span
+                className={
+                  metaAlcanzada ? "font-medium text-emerald-400" : "text-slate-300"
+                }
+              >
+                {pct.toFixed(0)}%
+              </span>
+              <span className="text-slate-600">
+                {" "}
+                · {formatearEuros(bankroll.metaMensual)}
               </span>
             </span>
-            <span
-              className={`font-semibold ${
-                metaAlcanzada ? "text-emerald-400" : "text-slate-300"
-              }`}
-            >
-              {pct.toFixed(1)}%
-            </span>
           </div>
-
           <div
-            className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-white/[0.04]"
+            className="h-[3px] w-full overflow-hidden rounded-full bg-white/[0.05]"
             role="progressbar"
             aria-valuenow={pct}
             aria-valuemin={0}
@@ -205,18 +208,12 @@ export function BankrollHeader({
             <div
               className={`h-full rounded-full transition-all duration-700 ease-out ${
                 metaAlcanzada
-                  ? "bg-gradient-to-r from-emerald-500 to-emerald-300"
-                  : "bg-gradient-to-r from-emerald-600 to-teal-400"
+                  ? "bg-gradient-to-r from-emerald-400 to-teal-300"
+                  : "bg-gradient-to-r from-emerald-600/90 to-emerald-400/70"
               }`}
-              style={{ width: `${Math.max(pct, 2)}%` }}
+              style={{ width: `${Math.max(pct, 1.5)}%` }}
             />
           </div>
-
-          {metaAlcanzada ? (
-            <p className="mt-1.5 text-xs font-medium text-emerald-400">
-              Meta mensual alcanzada
-            </p>
-          ) : null}
         </div>
       </header>
 
