@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    container_name: arbol-de-escaleras
+    ports:
+      - "3000:3000"
+    environment:
+      - ARBOL_DB_PATH=/app/data/arbol.db
+      - NODE_OPTIONS=--experimental-sqlite
+      - AUTH_SECRET=${AUTH_SECRET:-cambiar-en-produccion-min-16-chars}
+      # Clave de The Odds API (módulo de análisis de cuotas). Opcional.
+      - ODDS_API_KEY=${ODDS_API_KEY:-}
+    volumes:
+      # Persiste la base de datos SQLite fuera del contenedor.
+      - arbol-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  arbol-data:

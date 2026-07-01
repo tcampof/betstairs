@@ -1,0 +1,31 @@
+{
+  "name": "arbol-de-escaleras",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "cross-env NODE_OPTIONS=--experimental-sqlite next dev",
+    "build": "cross-env NODE_OPTIONS=--experimental-sqlite next build",
+    "start": "cross-env NODE_OPTIONS=--experimental-sqlite next start",
+    "lint": "next lint",
+    "reparar": "node --experimental-sqlite scripts/reparar.mjs",
+    "seed:usuario": "node --experimental-sqlite scripts/seed-usuario.mjs",
+    "docker:rebuild": "docker compose build --no-cache && docker compose up -d --force-recreate"
+  },
+  "dependencies": {
+    "next": "14.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.19",
+    "cross-env": "^10.1.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "14.2",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.6",
+    "typescript": "^5.5.3"
+  }
+}

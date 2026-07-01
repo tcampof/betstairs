@@ -1,0 +1,60 @@
+{
+  "_comentario": "Copia este archivo, edítalo con tus datos reales y úsalo con: node scripts/reparar.mjs reconstruir --input estado-actual.json --manifiesto mi-manifiesto.json --output estado-fixed.json",
+  "fase": "arbol",
+  "hucha": 0,
+  "statsMes": {
+    "apuestasRealizadas": 4,
+    "escalerasRotas": 0
+  },
+  "ramas": [
+    {
+      "nombre": "Escalera 1",
+      "montoInicial": 20,
+      "montoActual": 35,
+      "pasoActual": 2,
+      "estado": "activa",
+      "apuestaPendiente": {
+        "partido": "Partido A",
+        "cuota": 1.85,
+        "stake": 35,
+        "tipo": "tiros_libres"
+      }
+    },
+    {
+      "nombre": "Escalera 2",
+      "montoInicial": 20,
+      "montoActual": 42,
+      "pasoActual": 3,
+      "estado": "activa",
+      "apuestaPendiente": {
+        "partido": "Partido B",
+        "cuota": 2.1,
+        "stake": 42
+      }
+    },
+    {
+      "nombre": "Escalera 3",
+      "montoInicial": 20,
+      "montoActual": 28,
+      "pasoActual": 1,
+      "estado": "activa",
+      "apuestaPendiente": {
+        "partido": "Partido C",
+        "cuota": 1.72,
+        "stake": 28
+      }
+    },
+    {
+      "nombre": "Escalera 4",
+      "montoInicial": 20,
+      "montoActual": 51,
+      "pasoActual": 4,
+      "estado": "activa",
+      "apuestaPendiente": {
+        "partido": "Partido D",
+        "cuota": 1.95,
+        "stake": 51
+      }
+    }
+  ]
+}
