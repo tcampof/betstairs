@@ -1,5 +1,10 @@
 import { hashPassword, verifyPassword } from "@/server/auth";
-import { getDb } from "@/server/db";
+import {
+  adoptarLegacyAUsuario,
+  ensureDb,
+  queryOne,
+  runInsert,
+} from "@/server/db";
 
 export interface Usuario {
   id: number;
@@ -14,7 +19,11 @@ interface FilaUsuario {
   created_at: string;
 }
 
-function filaAUsuario(fila: FilaUsuario): Usuario {
+function filaAUsuario(fila: {
+  id: number;
+  email: string;
+  created_at: string;
+}): Usuario {
   return {
     id: fila.id,
     email: fila.email,
@@ -22,71 +31,55 @@ function filaAUsuario(fila: FilaUsuario): Usuario {
   };
 }
 
-export function buscarUsuarioPorEmail(email: string): (Usuario & { passwordHash: string }) | null {
-  const fila = getDb()
-    .prepare(
-      "SELECT id, email, password_hash, created_at FROM users WHERE email = ? COLLATE NOCASE",
-    )
-    .get(email.trim().toLowerCase()) as FilaUsuario | undefined;
+export async function buscarUsuarioPorEmail(
+  email: string,
+): Promise<(Usuario & { passwordHash: string }) | null> {
+  await ensureDb();
+
+  const fila = await queryOne<FilaUsuario>(
+    "SELECT id, email, password_hash, created_at FROM users WHERE email = ? COLLATE NOCASE",
+    [email.trim().toLowerCase()],
+  );
 
   if (!fila) return null;
   return { ...filaAUsuario(fila), passwordHash: fila.password_hash };
 }
 
-export function buscarUsuarioPorId(id: number): Usuario | null {
-  const fila = getDb()
-    .prepare("SELECT id, email, created_at FROM users WHERE id = ?")
-    .get(id) as Pick<FilaUsuario, "id" | "email" | "created_at"> | undefined;
+export async function buscarUsuarioPorId(id: number): Promise<Usuario | null> {
+  await ensureDb();
+
+  const fila = await queryOne<Pick<FilaUsuario, "id" | "email" | "created_at">>(
+    "SELECT id, email, created_at FROM users WHERE id = ?",
+    [id],
+  );
 
   if (!fila) return null;
-  return {
-    id: fila.id,
-    email: fila.email,
-    createdAt: fila.created_at,
-  };
+  return filaAUsuario(fila);
 }
 
-/** Adopta el estado legacy (id=1) al primer usuario registrado. */
-function adoptarEstadoLegacy(userId: number): void {
-  const db = getDb();
-  const legacy = db
-    .prepare("SELECT data, updated_at FROM legacy_estado_backup LIMIT 1")
-    .get() as { data: string; updated_at: string } | undefined;
+export async function crearUsuario(
+  email: string,
+  password: string,
+): Promise<Usuario> {
+  await ensureDb();
 
-  if (!legacy) return;
-
-  const existe = db
-    .prepare("SELECT 1 FROM estado WHERE user_id = ?")
-    .get(userId);
-
-  if (existe) return;
-
-  db.prepare(
-    `INSERT INTO estado (user_id, data, updated_at) VALUES (?, ?, ?)`,
-  ).run(userId, legacy.data, legacy.updated_at);
-  db.exec("DELETE FROM legacy_estado_backup");
-}
-
-export function crearUsuario(email: string, password: string): Usuario {
   const normalizado = email.trim().toLowerCase();
   const ahora = new Date().toISOString();
 
-  const resultado = getDb()
-    .prepare(
-      `INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)`,
-    )
-    .run(normalizado, hashPassword(password), ahora);
+  const userId = await runInsert(
+    "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
+    [normalizado, hashPassword(password), ahora],
+  );
 
-  const userId = Number(resultado.lastInsertRowid);
-  adoptarEstadoLegacy(userId);
+  await adoptarLegacyAUsuario(userId);
   return { id: userId, email: normalizado, createdAt: ahora };
 }
 
-export function verificarCredenciales(
+export async function verificarCredenciales(
   email: string,
   password: string,
-): Usuario | null {
-  const usuario = buscarUsuarioPorEmail(email);
+): Promise<Usuario | null> {
+  const usuario = await buscarUsuarioPorEmail(email);
   if (!usuario || !verifyPassword(password, usuario.passwordHash)) {
     return null;
   }

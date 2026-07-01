@@ -1,21 +1,19 @@
-import { getDb } from "@/server/db";
-
-/**
- * Caché simple con expiración (TTL) sobre SQLite. Imprescindible para respetar
- * la cuota gratuita del proveedor de cuotas (p. ej. ~16 peticiones/día).
- */
+import { ensureDb, exec, queryOne } from "@/server/db";
 
 interface FilaCache {
   data: string;
   expira_en: number;
 }
 
-export function leerCache<T>(clave: string): T | null {
-  const fila = getDb()
-    .prepare("SELECT data, expira_en FROM odds_cache WHERE clave = :clave")
-    .get({ clave }) as FilaCache | undefined;
+export async function leerCache<T>(clave: string): Promise<T | null> {
+  await ensureDb();
 
-  if (!fila || Date.now() > fila.expira_en) return null;
+  const fila = await queryOne<FilaCache>(
+    "SELECT data, expira_en FROM odds_cache WHERE clave = ?",
+    [clave],
+  );
+
+  if (!fila || Date.now() > Number(fila.expira_en)) return null;
 
   try {
     return JSON.parse(fila.data) as T;
@@ -24,16 +22,19 @@ export function leerCache<T>(clave: string): T | null {
   }
 }
 
-export function guardarCache(clave: string, valor: unknown, ttlMs: number): void {
-  getDb()
-    .prepare(
-      `INSERT INTO odds_cache (clave, data, expira_en)
-       VALUES (:clave, :data, :expira)
-       ON CONFLICT(clave) DO UPDATE SET data = :data, expira_en = :expira`,
-    )
-    .run({
-      clave,
-      data: JSON.stringify(valor),
-      expira: Date.now() + ttlMs,
-    });
+export async function guardarCache(
+  clave: string,
+  valor: unknown,
+  ttlMs: number,
+): Promise<void> {
+  await ensureDb();
+
+  const data = JSON.stringify(valor);
+  const expira = Date.now() + ttlMs;
+
+  await exec(
+    `INSERT INTO odds_cache (clave, data, expira_en) VALUES (?, ?, ?)
+     ON CONFLICT(clave) DO UPDATE SET data = excluded.data, expira_en = excluded.expira_en`,
+    [clave, data, expira],
+  );
 }

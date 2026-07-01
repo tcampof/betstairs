@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json({ error: "No autenticado" }, { status: 401 });
   }
 
-  const usuario = buscarUsuarioPorId(userId);
+  const usuario = await buscarUsuarioPorId(userId);
   if (!usuario) {
     return NextResponse.json({ error: "Usuario no encontrado" }, { status: 401 });
   }

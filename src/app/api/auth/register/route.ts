@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (buscarUsuarioPorEmail(email)) {
+  if (await buscarUsuarioPorEmail(email)) {
     return NextResponse.json(
       { error: "Ya existe una cuenta con ese email" },
       { status: 409 },
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const usuario = crearUsuario(email, password);
+    const usuario = await crearUsuario(email, password);
     establecerCookieSesion(usuario.id);
     return NextResponse.json({
       id: usuario.id,

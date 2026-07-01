@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const usuario = verificarCredenciales(email, password);
+  const usuario = await verificarCredenciales(email, password);
   if (!usuario) {
     return NextResponse.json(
       { error: "Credenciales incorrectas" },

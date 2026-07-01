@@ -14,7 +14,7 @@ export async function GET() {
   }
 
   try {
-    const estado = leerEstado(userId);
+    const estado = await leerEstado(userId);
     return NextResponse.json(estado);
   } catch (error) {
     console.error("Error leyendo el estado", error);
@@ -46,7 +46,7 @@ export async function PUT(request: Request) {
   }
 
   try {
-    guardarEstado(userId, cuerpo);
+    await guardarEstado(userId, cuerpo);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error guardando el estado", error);

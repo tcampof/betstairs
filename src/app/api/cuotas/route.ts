@@ -47,14 +47,14 @@ export async function GET(request: Request) {
   const claveCache = `cuotas:${liga}:${region}:${MERCADO}`;
 
   try {
-    let datos = leerCache<ResultadoProveedor>(claveCache);
+    let datos = await leerCache<ResultadoProveedor>(claveCache);
     let enCache = true;
 
     if (!datos) {
       enCache = false;
       const proveedor = crearProveedorTheOddsApi(apiKey);
       datos = await proveedor.listarEventos({ liga, region, mercado: MERCADO });
-      guardarCache(claveCache, datos, TTL_CACHE_MS);
+      await guardarCache(claveCache, datos, TTL_CACHE_MS);
     }
 
     const eventos = ordenarEventos(
